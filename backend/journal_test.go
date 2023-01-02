@@ -38,7 +38,7 @@ func TestJournal(t *testing.T) {
 		})
 		Convey("AddFile n times", func() {
 			n := rand.Intn(1000)
-			var fileInfos []*FileInfo
+			var expectedFileInfos []*FileInfo
 			for i := 0; i < n; i++ {
 				fileInfo := &FileInfo{
 					ID:       uuid.NewV4().String(),
@@ -46,15 +46,11 @@ func TestJournal(t *testing.T) {
 					MimeType: uuid.NewV4().String(),
 				}
 				journal.AddFile(fileInfo)
-				fileInfos = append(fileInfos, fileInfo)
+				expectedFileInfos = append(expectedFileInfos, fileInfo)
 			}
-			fileInfoByID, err := BuildFileInfoByIDFromJournal(buffer)
+			actualFileInfos, err := BuildFileInfosFromJournal(buffer)
 			So(err, ShouldBeNil)
-			for _, fileInfo := range fileInfos {
-				So(fileInfoByID[fileInfo.ID], ShouldResemble, fileInfo)
-				delete(fileInfoByID, fileInfo.ID)
-			}
-			So(fileInfoByID, ShouldBeEmpty)
+			So(actualFileInfos, ShouldResemble, expectedFileInfos)
 		})
 	})
 }

@@ -16,14 +16,14 @@ func main() {
 		panic(err)
 	}
 	defer file.Close()
-	fileInfoByID, err := BuildFileInfoByIDFromJournal(file)
+	fileInfos, err := BuildFileInfosFromJournal(file)
 	if err != nil {
 		panic(err)
 	}
 	router := GetRouter(&Handlers{
-		FolderPath:   "files",
-		FileInfoByID: fileInfoByID,
-		Journal:      NewJournal(file),
+		FolderPath: "files",
+		FileInfos:  fileInfos,
+		Journal:    NewJournal(file),
 	})
 	err = http.ListenAndServe(":8080", router)
 	panic(err)
@@ -31,12 +31,13 @@ func main() {
 
 func GetRouter(handlers *Handlers) (router *mux.Router) {
 	router = mux.NewRouter()
-	router.HandleFunc("/upload", handlers.UploadFiles).Methods("POST")
+	router.HandleFunc("/files", handlers.AddFile).Methods("POST").Name("AddFile")
+	router.HandleFunc("/files", handlers.ListFiles).Methods("GET").Name("ListFiles")
+	router.HandleFunc("/files/{file_id}", handlers.DownloadFile).Methods("GET").Name("DownloadFile")
 	return
 }
 
-func BuildFileInfoByIDFromJournal(reader io.Reader) (fileInfoByID map[string]*FileInfo, err error) {
-	fileInfoByID = make(map[string]*FileInfo)
+func BuildFileInfosFromJournal(reader io.Reader) (fileInfos []*FileInfo, err error) {
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
 		var event Event
@@ -46,7 +47,7 @@ func BuildFileInfoByIDFromJournal(reader io.Reader) (fileInfoByID map[string]*Fi
 		}
 		switch event.Type {
 		case "add_file":
-			fileInfoByID[event.AddFile.ID] = event.AddFile
+			fileInfos = append(fileInfos, event.AddFile)
 		}
 	}
 	err = scanner.Err()
