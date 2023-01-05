@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"os"
 
@@ -25,8 +26,18 @@ func main() {
 		FileInfos:  fileInfos,
 		Journal:    NewJournal(file),
 	})
-	err = http.ListenAndServe(":8080", router)
+	router.Use(mux.CORSMethodMiddleware(router))
+	router.Use(CORSAllowOriginMiddleware)
+	log.Println("Listening on port 9000")
+	err = http.ListenAndServe(":9000", router)
 	panic(err)
+}
+
+func CORSAllowOriginMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		next.ServeHTTP(w, r)
+	})
 }
 
 func GetRouter(handlers *Handlers) (router *mux.Router) {
@@ -39,6 +50,7 @@ func GetRouter(handlers *Handlers) (router *mux.Router) {
 
 func BuildFileInfosFromJournal(reader io.Reader) (fileInfos []*FileInfo, err error) {
 	scanner := bufio.NewScanner(reader)
+	fileInfos = make([]*FileInfo, 0)
 	for scanner.Scan() {
 		var event Event
 		err = json.Unmarshal(scanner.Bytes(), &event)

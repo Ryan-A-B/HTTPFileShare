@@ -6,6 +6,10 @@ COPY . .
 RUN go test -v ./...
 RUN go build -o app .
 
-FROM alpine:latest
+FROM ubuntu:focal
+WORKDIR /opt
 COPY --from=builder /opt/app .
-ENTRYPOINT ["./app"]
+RUN mkdir files
+CMD ["./app"]
+
+
